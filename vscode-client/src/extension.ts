@@ -20,7 +20,8 @@ import {
 	workspace, Disposable, ExtensionContext, 
 	commands, window, ViewColumn,
 	Uri, 
-	WebviewPanel
+	WebviewPanel,
+	InputBoxOptions
 } from 'vscode';
 import * as path from 'path';
 import { 
@@ -77,11 +78,49 @@ function get_scratch_dir() {
 	return scratch_directory
 }
 
+const executable = "benten-ls"
+
+
+function check_if_benten_installed() {
+	const { exec } = require('child_process');
+	exec(executable, (err, stdout, stderr) => {
+		if (err) {
+			offer_to_install_benten()
+		}
+	
+	});	
+}
+
+
+function offer_to_install_benten() {
+	let options: InputBoxOptions = {
+		prompt: "Install benten server? ",
+		placeHolder: "(y/n)",
+		validateInput: (val) => {
+			if (val == "n" || val == "y") { return "" }
+			else { return "Type one of 'n' or 'y'" }
+		} 
+	}
+	
+	window.showInputBox(options).then(value => {
+		const { exec } = require('child_process');
+
+		if (!value) return;
+		if (value == "y") {
+			exec("pipx upgrade benten", (err, stdout, stderr) => {
+				window.showInformationMessage(`stdout: ${stdout}\nstderr: ${stderr}`)
+			});	
+		}
+	});
+}
+
 
 export function activate(context: ExtensionContext) {
-	
+
+	check_if_benten_installed()
+
 	// For the language server
-	const executable = "benten-ls"
+	// const executable = "benten-ls"
 	const args = ["--debug"]
 	context.subscriptions.push(startLangServer(executable, args, ["cwl"]));
     // For TCP server needs to be started separately
